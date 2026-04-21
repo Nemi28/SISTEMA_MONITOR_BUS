@@ -1,0 +1,90 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─────────────────────────────────────────
+// ENUMS
+// ─────────────────────────────────────────
+
+enum BusEstado {
+  ACTIVO
+  INACTIVO
+  MANTENIMIENTO
+}
+
+enum NivelOcupacion {
+  BAJO
+  MEDIO
+  ALTO
+  LLENO
+}
+
+// ─────────────────────────────────────────
+// TABLAS
+// ─────────────────────────────────────────
+
+model Ruta {
+  id          String     @id @default(uuid())
+  nombre      String     @unique
+  descripcion String?
+  origen      String
+  destino     String
+  activa      Boolean    @default(true)
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  estaciones  Estacion[]
+  buses       Bus[]
+}
+
+model Estacion {
+  id        String   @id @default(uuid())
+  rutaId    String
+  nombre    String
+  latitud   Float
+  longitud  Float
+  orden     Int
+  createdAt DateTime @default(now())
+
+  ruta      Ruta     @relation(fields: [rutaId], references: [id])
+
+  @@unique([rutaId, orden])
+  @@index([rutaId])
+}
+
+model Bus {
+  id        String    @id @default(uuid())
+  rutaId    String?
+  codigo    String    @unique
+  placa     String    @unique
+  capacidad Int
+  modelo    String?
+  estado    BusEstado @default(ACTIVO)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  ruta      Ruta?     @relation(fields: [rutaId], references: [id])
+  reportes  Reporte[]
+}
+
+model Reporte {
+  id                  String         @id @default(uuid())
+  busId               String
+  latitud             Float
+  longitud            Float
+  cantidadPasajeros   Int
+  velocidad           Float?
+  porcentajeOcupacion Float
+  nivelOcupacion      NivelOcupacion
+  timestamp           DateTime       @default(now())
+
+  bus                 Bus            @relation(fields: [busId], references: [id])
+
+  @@index([busId])
+  @@index([timestamp])
+}
