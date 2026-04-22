@@ -9,7 +9,7 @@ export const getAllBuses = async (filter?: string) => {
       some: {
         nivelOcupacion: 'LLENO',
         timestamp: {
-          gte: new Date(Date.now() - 5 * 60 * 1000), // últimos 5 min
+          gte: new Date(Date.now() - 5 * 60 * 1000),
         },
       },
     }
@@ -19,16 +19,23 @@ export const getAllBuses = async (filter?: string) => {
     where.estado = BusEstado.ACTIVO
   }
 
-  return prisma.bus.findMany({
+  const buses = await prisma.bus.findMany({
     where,
     include: {
       ruta: true,
       reportes: {
         orderBy: { timestamp: 'desc' },
-        take: 1, // solo el último reporte
+        take: 1,
       },
     },
   })
+
+  // Mapear ultimoReporte
+  return buses.map((bus) => ({
+    ...bus,
+    ultimoReporte: bus.reportes[0] || null,
+    reportes: undefined,
+  }))
 }
 
 export const getBusById = async (id: string) => {
