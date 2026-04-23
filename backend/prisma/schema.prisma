@@ -11,79 +11,79 @@ datasource db {
 // ENUMS
 // ─────────────────────────────────────────
 
-enum BusEstado {
-  ACTIVO
-  INACTIVO
-  MANTENIMIENTO
+enum BusStatus {
+  ACTIVE
+  INACTIVE
+  MAINTENANCE
 }
 
-enum NivelOcupacion {
-  BAJO
-  MEDIO
-  ALTO
-  LLENO
+enum OccupancyLevel {
+  LOW
+  MEDIUM
+  HIGH
+  FULL
 }
 
 // ─────────────────────────────────────────
-// TABLAS
+// TABLES
 // ─────────────────────────────────────────
 
-model Ruta {
-  id          String     @id @default(uuid())
-  nombre      String     @unique
-  descripcion String?
-  origen      String
-  destino     String
-  activa      Boolean    @default(true)
-  createdAt   DateTime   @default(now())
-  updatedAt   DateTime   @updatedAt
+model Route {
+  id          String    @id @default(uuid())
+  name        String    @unique
+  description String?
+  origin      String
+  destination String
+  active      Boolean   @default(true)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
 
-  estaciones  Estacion[]
+  stations    Station[]
   buses       Bus[]
 }
 
-model Estacion {
+model Station {
   id        String   @id @default(uuid())
-  rutaId    String
-  nombre    String
-  latitud   Float
-  longitud  Float
-  orden     Int
+  routeId   String
+  name      String
+  lat       Float
+  lng       Float
+  order     Int
   createdAt DateTime @default(now())
 
-  ruta      Ruta     @relation(fields: [rutaId], references: [id])
+  route     Route    @relation(fields: [routeId], references: [id])
 
-  @@unique([rutaId, orden])
-  @@index([rutaId])
+  @@unique([routeId, order])
+  @@index([routeId])
 }
 
 model Bus {
   id        String    @id @default(uuid())
-  rutaId    String?
-  codigo    String    @unique
-  placa     String    @unique
-  capacidad Int
-  modelo    String?
-  estado    BusEstado @default(ACTIVO)
+  routeId   String?
+  code      String    @unique
+  plate     String    @unique
+  capacity  Int
+  model     String?
+  status    BusStatus @default(ACTIVE)
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
 
-  ruta      Ruta?     @relation(fields: [rutaId], references: [id])
-  reportes  Reporte[]
+  route     Route?    @relation(fields: [routeId], references: [id])
+  reports   Report[]
 }
 
-model Reporte {
-  id                  String         @id @default(uuid())
-  busId               String
-  latitud             Float
-  longitud            Float
-  cantidadPasajeros   Int
-  velocidad           Float?
-  porcentajeOcupacion Float
-  nivelOcupacion      NivelOcupacion
-  timestamp           DateTime       @default(now())
+model Report {
+  id               String         @id @default(uuid())
+  busId            String
+  lat              Float
+  lng              Float
+  passengerCount   Int
+  speed            Float?
+  occupancyPercent Float
+  occupancyLevel   OccupancyLevel
+  timestamp        DateTime       @default(now())
 
-  bus                 Bus            @relation(fields: [busId], references: [id])
+  bus              Bus            @relation(fields: [busId], references: [id])
 
   @@index([busId])
   @@index([timestamp])

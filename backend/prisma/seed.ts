@@ -3,104 +3,104 @@ import { PrismaClient } from '@prisma/client'
 const prisma = new PrismaClient()
 
 async function main() {
-  console.log('Iniciando seed...')
+  console.log('Starting seed...')
 
-  // 1. Crear líneas
-  const lineaA = await prisma.ruta.upsert({
-    where: { nombre: 'Línea A' },
+  // 1. Create routes
+  const routeA = await prisma.route.upsert({
+    where: { name: 'Línea A' },
     update: {},
     create: {
-      nombre: 'Línea A',
-      descripcion: 'Ruta norte-sur por Av. Naranjal',
-      origen: 'Terminal Naranjal',
-      destino: 'Estación Central',
+      name: 'Línea A',
+      description: 'Ruta norte-sur por Av. Naranjal',
+      origin: 'Terminal Naranjal',
+      destination: 'Estación Central',
     },
   })
 
-  const lineaB = await prisma.ruta.upsert({
-    where: { nombre: 'Línea B' },
+  const routeB = await prisma.route.upsert({
+    where: { name: 'Línea B' },
     update: {},
     create: {
-      nombre: 'Línea B',
-      descripcion: 'Ruta este-oeste por Av. Javier Prado',
-      origen: 'Estación La Molina',
-      destino: 'Estación Naranjal',
+      name: 'Línea B',
+      description: 'Ruta este-oeste por Av. Javier Prado',
+      origin: 'Estación La Molina',
+      destination: 'Estación Naranjal',
     },
   })
 
-  const lineaC = await prisma.ruta.upsert({
-    where: { nombre: 'Línea C' },
+  const routeC = await prisma.route.upsert({
+    where: { name: 'Línea C' },
     update: {},
     create: {
-      nombre: 'Línea C',
-      descripcion: 'Ruta circular por el centro',
-      origen: 'Estación Central',
-      destino: 'Estación Central',
+      name: 'Línea C',
+      description: 'Ruta circular por el centro',
+      origin: 'Estación Central',
+      destination: 'Estación Central',
     },
   })
 
-  console.log('✅ Líneas creadas')
+  console.log('✅ Routes created')
 
-  // 2. Crear estaciones
-  const estacionesA = [
-    { nombre: 'Terminal Naranjal', latitud: -11.9575, longitud: -77.0875, orden: 1 },
-    { nombre: 'Av. Universitaria', latitud: -12.0, longitud: -77.08, orden: 2 },
-    { nombre: 'Plaza Bolognesi', latitud: -12.055, longitud: -77.055, orden: 3 },
-    { nombre: 'Estación Central', latitud: -12.0464, longitud: -77.0428, orden: 4 },
+  // 2. Create stations
+  const stationsA = [
+    { name: 'Terminal Naranjal', lat: -11.9575, lng: -77.0875, order: 1 },
+    { name: 'Av. Universitaria', lat: -12.0, lng: -77.08, order: 2 },
+    { name: 'Plaza Bolognesi', lat: -12.055, lng: -77.055, order: 3 },
+    { name: 'Estación Central', lat: -12.0464, lng: -77.0428, order: 4 },
   ]
 
-  for (const est of estacionesA) {
-    await prisma.estacion.upsert({
-      where: { rutaId_orden: { rutaId: lineaA.id, orden: est.orden } },
+  for (const st of stationsA) {
+    await prisma.station.upsert({
+      where: { routeId_order: { routeId: routeA.id, order: st.order } },
       update: {},
-      create: { ...est, rutaId: lineaA.id },
+      create: { ...st, routeId: routeA.id },
     })
   }
 
-  const estacionesB = [
-    { nombre: 'Estación La Molina', latitud: -12.0848, longitud: -76.9455, orden: 1 },
-    { nombre: 'Javier Prado Este', latitud: -12.0869, longitud: -77.0016, orden: 2 },
-    { nombre: 'Javier Prado Oeste', latitud: -12.0869, longitud: -77.05, orden: 3 },
-    { nombre: 'Estación Naranjal', latitud: -11.9575, longitud: -77.0875, orden: 4 },
+  const stationsB = [
+    { name: 'Estación La Molina', lat: -12.0848, lng: -76.9455, order: 1 },
+    { name: 'Javier Prado Este', lat: -12.0869, lng: -77.0016, order: 2 },
+    { name: 'Javier Prado Oeste', lat: -12.0869, lng: -77.05, order: 3 },
+    { name: 'Estación Naranjal', lat: -11.9575, lng: -77.0875, order: 4 },
   ]
 
-  for (const est of estacionesB) {
-    await prisma.estacion.upsert({
-      where: { rutaId_orden: { rutaId: lineaB.id, orden: est.orden } },
+  for (const st of stationsB) {
+    await prisma.station.upsert({
+      where: { routeId_order: { routeId: routeB.id, order: st.order } },
       update: {},
-      create: { ...est, rutaId: lineaB.id },
+      create: { ...st, routeId: routeB.id },
     })
   }
 
-  console.log('✅ Estaciones creadas')
+  console.log('✅ Stations created')
 
-  // 3. Crear buses
+  // 3. Create buses
   const busesData = [
-    { codigo: 'BUS-001', placa: 'ABC-123', capacidad: 80, modelo: 'Volvo B8R', rutaId: lineaA.id },
-    { codigo: 'BUS-002', placa: 'ABC-456', capacidad: 80, modelo: 'Volvo B8R', rutaId: lineaA.id },
-    { codigo: 'BUS-003', placa: 'DEF-123', capacidad: 60, modelo: 'Mercedes Citaro', rutaId: lineaA.id },
-    { codigo: 'BUS-004', placa: 'DEF-456', capacidad: 100, modelo: 'Scania Citywide', rutaId: lineaB.id },
-    { codigo: 'BUS-005', placa: 'GHI-123', capacidad: 100, modelo: 'Scania Citywide', rutaId: lineaB.id },
-    { codigo: 'BUS-006', placa: 'GHI-456', capacidad: 80, modelo: 'Volvo B8R', rutaId: lineaB.id },
-    { codigo: 'BUS-007', placa: 'JKL-123', capacidad: 60, modelo: 'Mercedes Citaro', rutaId: lineaC.id },
-    { codigo: 'BUS-008', placa: 'JKL-456', capacidad: 60, modelo: 'Mercedes Citaro', rutaId: lineaC.id },
+    { code: 'BUS-001', plate: 'ABC-123', capacity: 80, model: 'Volvo B8R', routeId: routeA.id },
+    { code: 'BUS-002', plate: 'ABC-456', capacity: 80, model: 'Volvo B8R', routeId: routeA.id },
+    { code: 'BUS-003', plate: 'DEF-123', capacity: 60, model: 'Mercedes Citaro', routeId: routeA.id },
+    { code: 'BUS-004', plate: 'DEF-456', capacity: 100, model: 'Scania Citywide', routeId: routeB.id },
+    { code: 'BUS-005', plate: 'GHI-123', capacity: 100, model: 'Scania Citywide', routeId: routeB.id },
+    { code: 'BUS-006', plate: 'GHI-456', capacity: 80, model: 'Volvo B8R', routeId: routeB.id },
+    { code: 'BUS-007', plate: 'JKL-123', capacity: 60, model: 'Mercedes Citaro', routeId: routeC.id },
+    { code: 'BUS-008', plate: 'JKL-456', capacity: 60, model: 'Mercedes Citaro', routeId: routeC.id },
   ]
 
   for (const busData of busesData) {
     await prisma.bus.upsert({
-      where: { codigo: busData.codigo },
+      where: { code: busData.code },
       update: {},
       create: busData,
     })
   }
 
-  console.log('✅ Buses creados')
-  console.log('🎉 Seed completado exitosamente')
+  console.log('✅ Buses created')
+  console.log('🎉 Seed completed successfully')
 }
 
 main()
   .catch((e) => {
-    console.error('❌ Error en seed:', e)
+    console.error('❌ Seed error:', e)
     process.exit(1)
   })
   .finally(async () => {

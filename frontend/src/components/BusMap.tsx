@@ -6,7 +6,7 @@ import { Bus } from '../types'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 
-// Fix iconos de Leaflet con Vite
+// Fix Leaflet icons with Vite
 delete (L.Icon.Default.prototype as unknown as Record<string, unknown>)._getIconUrl
 L.Icon.Default.mergeOptions({
   iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon-2x.png',
@@ -14,33 +14,45 @@ L.Icon.Default.mergeOptions({
   shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png',
 })
 
-const nivelCircleColors = {
-  BAJO: '#22c55e',
-  MEDIO: '#eab308',
-  ALTO: '#f97316',
-  LLENO: '#ef4444',
+const levelCircleColors = {
+  LOW: '#22c55e',
+  MEDIUM: '#eab308',
+  HIGH: '#f97316',
+  FULL: '#ef4444',
 }
 
-const createBusIcon = (nivel: string) => {
-  const color = nivelCircleColors[nivel as keyof typeof nivelCircleColors] || '#6b7280'
+const createBusIcon = (level: string, code: string) => {
+  const color = levelCircleColors[level as keyof typeof levelCircleColors] || '#6b7280'
   return L.divIcon({
     className: '',
     html: `
-      <div style="
-        background: ${color};
-        width: 32px;
-        height: 32px;
-        border-radius: 50%;
-        border: 3px solid white;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.4);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 14px;
-      ">🚌</div>
+      <div style="display: flex; flex-direction: column; align-items: center; gap: 2px;">
+        <div style="
+          background: #1f2937;
+          color: white;
+          font-size: 9px;
+          font-weight: bold;
+          padding: 1px 4px;
+          border-radius: 4px;
+          white-space: nowrap;
+          box-shadow: 0 1px 4px rgba(0,0,0,0.5);
+        ">${code}</div>
+        <div style="
+          background: ${color};
+          width: 32px;
+          height: 32px;
+          border-radius: 50%;
+          border: 3px solid white;
+          box-shadow: 0 2px 8px rgba(0,0,0,0.4);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 14px;
+        ">🚌</div>
+      </div>
     `,
-    iconSize: [32, 32],
-    iconAnchor: [16, 16],
+    iconSize: [40, 52],
+    iconAnchor: [20, 52],
   })
 }
 
@@ -48,7 +60,7 @@ export default function BusMap() {
   const fetchStatus = useCallback(() => getLastStatus(), [])
   const { data: buses, loading } = usePolling(fetchStatus, 5000)
 
-  const busesConReporte = buses?.filter((b: Bus) => b.ultimoReporte) ?? []
+  const busesWithReport = buses?.filter((b: Bus) => b.lastReport) ?? []
 
   return (
     <div className="bg-gray-800 rounded-xl border border-gray-700 overflow-hidden">
@@ -68,31 +80,31 @@ export default function BusMap() {
             url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
           />
 
-          {busesConReporte.map((bus: Bus) => {
-            const r = bus.ultimoReporte!
-            const nivel = r.nivelOcupacion
+          {busesWithReport.map((bus: Bus) => {
+            const r = bus.lastReport!
+            const level = r.occupancyLevel
 
             return (
               <Marker
                 key={bus.id}
-                position={[r.latitud, r.longitud]}
-                icon={createBusIcon(nivel)}
+                position={[r.lat, r.lng]}
+                icon={createBusIcon(level, bus.code)}
               >
                 <Popup>
                   <div className="text-sm">
-                    <p className="font-bold">{bus.codigo} — {bus.placa}</p>
-                    <p>Ruta: {bus.ruta?.nombre ?? 'Sin ruta'}</p>
-                    <p>Ocupación: {r.porcentajeOcupacion}% ({nivel})</p>
-                    <p>Pasajeros: {r.cantidadPasajeros}/{bus.capacidad}</p>
-                    {r.velocidad && <p>Velocidad: {r.velocidad} km/h</p>}
+                    <p className="font-bold">{bus.code} — {bus.plate}</p>
+                    <p>Ruta: {bus.route?.name ?? 'Sin ruta'}</p>
+                    <p>Ocupación: {r.occupancyPercent}% ({level})</p>
+                    <p>Pasajeros: {r.passengerCount}/{bus.capacity}</p>
+                    {r.speed && <p>Velocidad: {r.speed} km/h</p>}
                   </div>
                 </Popup>
                 <Circle
-                  center={[r.latitud, r.longitud]}
+                  center={[r.lat, r.lng]}
                   radius={200}
                   pathOptions={{
-                    color: nivelCircleColors[nivel],
-                    fillColor: nivelCircleColors[nivel],
+                    color: levelCircleColors[level],
+                    fillColor: levelCircleColors[level],
                     fillOpacity: 0.1,
                   }}
                 />
@@ -102,8 +114,7 @@ export default function BusMap() {
         </MapContainer>
       </div>
 
-      {/* Sin buses en mapa */}
-      {!loading && busesConReporte.length === 0 && (
+      {!loading && busesWithReport.length === 0 && (
         <div className="px-4 py-2 text-center text-gray-500 text-sm border-t border-gray-700">
           No hay buses con ubicación disponible
         </div>

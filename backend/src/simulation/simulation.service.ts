@@ -1,106 +1,109 @@
-import prisma from '../prisma/prisma.service'
+import prisma from "../prisma/prisma.service";
 
-// Coordenadas base de Lima para la simulación
-const BASE_LAT = -12.0464
-const BASE_LNG = -77.0428
+const BASE_LAT = -12.0464;
+const BASE_LNG = -77.0428;
 
-let simulationInterval: NodeJS.Timeout | null = null
-let isRunning = false
+let simulationInterval: NodeJS.Timeout | null = null;
+let isRunning = false;
 
-const getRandomOffset = () => (Math.random() - 0.5) * 0.05
-const getRandomSpeed = () => Math.round(Math.random() * 60 + 10) // 10-70 km/h
+const getRandomOffset = () => (Math.random() - 0.5) * 0.01;
+const getRandomSpeed = () => Math.round(Math.random() * 60 + 10);
 
-const calcularNivel = (porcentaje: number) => {
-  if (porcentaje <= 40) return 'BAJO'
-  if (porcentaje <= 70) return 'MEDIO'
-  if (porcentaje <= 99) return 'ALTO'
-  return 'LLENO'
-}
+const calculateLevel = (percent: number) => {
+  if (percent <= 40) return "LOW";
+  if (percent <= 70) return "MEDIUM";
+  if (percent <= 99) return "HIGH";
+  return "FULL";
+};
 
 const generateReportForBus = async (bus: any) => {
-  // Obtener último reporte para simular movimiento continuo
-  const lastReport = await prisma.reporte.findFirst({
+  if (!bus.routeId) return;
+
+  const lastReport = await prisma.report.findFirst({
     where: { busId: bus.id },
-    orderBy: { timestamp: 'desc' },
-  })
+    orderBy: { timestamp: "desc" },
+  });
 
-  const latitud = lastReport
-    ? lastReport.latitud + getRandomOffset() * 0.3
-    : BASE_LAT + getRandomOffset()
+  const lat = lastReport
+    ? lastReport.lat + getRandomOffset() * 0.3
+    : BASE_LAT + getRandomOffset();
 
-  const longitud = lastReport
-    ? lastReport.longitud + getRandomOffset() * 0.3
-    : BASE_LNG + getRandomOffset()
+  const lng = lastReport
+    ? lastReport.lng + getRandomOffset() * 0.3
+    : BASE_LNG + getRandomOffset();
 
-  // Pasajeros varían gradualmente
-  const lastPasajeros = lastReport?.cantidadPasajeros ?? Math.floor(bus.capacidad * 0.3)
-  const variacion = Math.floor((Math.random() - 0.5) * 15)
-  const cantidadPasajeros = Math.min(
-    bus.capacidad,
-    Math.max(0, lastPasajeros + variacion)
-  )
+  const lastPassengerCount =
+    lastReport?.passengerCount ?? Math.floor(bus.capacity * 0.3);
+  const variation = Math.floor((Math.random() - 0.5) * 15);
+  const passengerCount = Math.min(
+    bus.capacity,
+    Math.max(0, lastPassengerCount + variation),
+  );
 
-  const porcentajeOcupacion = Math.round((cantidadPasajeros / bus.capacidad) * 100)
-  const nivelOcupacion = calcularNivel(porcentajeOcupacion) as any
+  const occupancyPercent = Math.round((passengerCount / bus.capacity) * 100);
+  const occupancyLevel = calculateLevel(occupancyPercent) as any;
 
-  await prisma.reporte.create({
+  await prisma.report.create({
     data: {
       busId: bus.id,
-      latitud,
-      longitud,
-      cantidadPasajeros,
-      velocidad: getRandomSpeed(),
-      porcentajeOcupacion,
-      nivelOcupacion,
+      lat,
+      lng,
+      passengerCount,
+      speed: getRandomSpeed(),
+      occupancyPercent,
+      occupancyLevel,
     },
-  })
-}
+  });
+};
 
 export const startSimulation = async (intervalSeconds: number = 5) => {
   if (isRunning) {
-    return { message: 'La simulación ya está en curso' }
+    return { message: "Simulation already running" };
   }
 
-  const buses = await prisma.bus.findMany({ where: { estado: 'ACTIVO' } })
+  const buses = await prisma.bus.findMany({
+    where: { status: "ACTIVE", routeId: { not: null } },
+  });
 
   if (buses.length === 0) {
-    return { message: 'No hay buses activos para simular' }
+    return { message: "No active buses to simulate" };
   }
 
-  isRunning = true
+  isRunning = true;
 
-  // Genera primer reporte inmediatamente
   for (const bus of buses) {
-    await generateReportForBus(bus)
+    await generateReportForBus(bus);
   }
 
   simulationInterval = setInterval(async () => {
-    const activeBuses = await prisma.bus.findMany({ where: { estado: 'ACTIVO' } })
+    const activeBuses = await prisma.bus.findMany({
+      where: { status: "ACTIVE" },
+    });
     for (const bus of activeBuses) {
-      await generateReportForBus(bus)
+      await generateReportForBus(bus);
     }
-  }, intervalSeconds * 1000)
+  }, intervalSeconds * 1000);
 
   return {
-    message: `Simulación iniciada para ${buses.length} bus(es) cada ${intervalSeconds} segundos`,
-  }
-}
+    message: `Simulation started for ${buses.length} bus(es) every ${intervalSeconds} seconds`,
+  };
+};
 
 export const stopSimulation = () => {
   if (!isRunning) {
-    return { message: 'No hay simulación en curso' }
+    return { message: "No simulation running" };
   }
 
   if (simulationInterval) {
-    clearInterval(simulationInterval)
-    simulationInterval = null
+    clearInterval(simulationInterval);
+    simulationInterval = null;
   }
 
-  isRunning = false
-  return { message: 'Simulación detenida' }
-}
+  isRunning = false;
+  return { message: "Simulation stopped" };
+};
 
 export const getSimulationStatus = () => ({
   isRunning,
-  message: isRunning ? 'Simulación en curso' : 'Simulación detenida',
-})
+  message: isRunning ? "Simulation running" : "Simulation stopped",
+});

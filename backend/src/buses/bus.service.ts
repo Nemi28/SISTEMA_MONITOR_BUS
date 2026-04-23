@@ -1,49 +1,71 @@
 import prisma from '../prisma/prisma.service'
-import { BusEstado } from '@prisma/client'
+import { BusStatus } from '@prisma/client'
 
-export const getAllBuses = async (filter?: string) => {
+export const getAllBuses = async (
+  filter?: string,
+  routeId?: string,
+  search?: string,
+  page: number = 1,
+  limit: number = 9
+) => {
   const where: any = {}
 
   if (filter === 'full') {
-    where.reportes = {
+    where.reports = {
       some: {
-        nivelOcupacion: 'LLENO',
-        timestamp: {
-          gte: new Date(Date.now() - 5 * 60 * 1000),
-        },
+        occupancyLevel: 'FULL',
+        timestamp: { gte: new Date(Date.now() - 5 * 60 * 1000) },
       },
     }
   }
 
-  if (filter === 'active') {
-    where.estado = BusEstado.ACTIVO
+  if (filter === 'active') where.status = BusStatus.ACTIVE
+  if (filter === 'inactive') where.status = BusStatus.INACTIVE
+  if (filter === 'maintenance') where.status = BusStatus.MAINTENANCE
+  if (routeId === 'none') where.routeId = null
+  else if (routeId) where.routeId = routeId
+
+  if (search) {
+    where.OR = [
+      { code: { contains: search, mode: 'insensitive' } },
+      { plate: { contains: search, mode: 'insensitive' } },
+    ]
   }
 
-  const buses = await prisma.bus.findMany({
-    where,
-    include: {
-      ruta: true,
-      reportes: {
-        orderBy: { timestamp: 'desc' },
-        take: 1,
+  const skip = (page - 1) * limit
+  const [buses, total] = await Promise.all([
+    prisma.bus.findMany({
+      where,
+      include: {
+        route: true,
+        reports: { orderBy: { timestamp: 'desc' }, take: 1 },
       },
-    },
-  })
+      skip,
+      take: limit,
+      orderBy: { createdAt: 'asc' },
+    }),
+    prisma.bus.count({ where }),
+  ])
 
-  // Mapear ultimoReporte
-  return buses.map((bus) => ({
-    ...bus,
-    ultimoReporte: bus.reportes[0] || null,
-    reportes: undefined,
-  }))
+  return {
+    data: buses.map((bus) => ({
+      ...bus,
+      lastReport: bus.reports[0] || null,
+      reports: undefined,
+    })),
+    total,
+    page,
+    limit,
+    totalPages: Math.ceil(total / limit),
+  }
 }
 
 export const getBusById = async (id: string) => {
   return prisma.bus.findUnique({
     where: { id },
     include: {
-      ruta: true,
-      reportes: {
+      route: true,
+      reports: {
         orderBy: { timestamp: 'desc' },
         take: 1,
       },
@@ -52,22 +74,22 @@ export const getBusById = async (id: string) => {
 }
 
 export const createBus = async (data: {
-  codigo: string
-  placa: string
-  capacidad: number
-  modelo?: string
-  rutaId?: string
+  code: string
+  plate: string
+  capacity: number
+  model?: string
+  routeId?: string
 }) => {
   return prisma.bus.create({ data })
 }
 
 export const updateBus = async (id: string, data: {
-  codigo?: string
-  placa?: string
-  capacidad?: number
-  modelo?: string
-  estado?: BusEstado
-  rutaId?: string
+  code?: string
+  plate?: string
+  capacity?: number
+  model?: string
+  status?: BusStatus
+  routeId?: string | null
 }) => {
   return prisma.bus.update({ where: { id }, data })
 }
@@ -75,6 +97,6 @@ export const updateBus = async (id: string, data: {
 export const deleteBus = async (id: string) => {
   return prisma.bus.update({
     where: { id },
-    data: { estado: BusEstado.INACTIVO },
+    data: { status: BusStatus.INACTIVE },
   })
 }

@@ -6,23 +6,23 @@ export const getByLine = async (req: Request, res: Response) => {
     const stations = await stationService.getStationsByLine(req.params.lineId)
     res.json({ success: true, data: stations })
   } catch (error) {
-    res.status(500).json({ success: false, message: 'Error al obtener estaciones' })
+    res.status(500).json({ success: false, message: 'Error fetching stations' })
   }
 }
 
 export const create = async (req: Request, res: Response) => {
   try {
-    const { rutaId, nombre, latitud, longitud, orden } = req.body
-    if (!rutaId || !nombre || !latitud || !longitud || !orden) {
-      return res.status(400).json({ success: false, message: 'Todos los campos son requeridos' })
+    const { routeId, name, lat, lng, order } = req.body
+    if (!routeId || !name || lat === undefined || lng === undefined || order === undefined) {
+      return res.status(400).json({ success: false, message: 'All fields are required' })
     }
-    const station = await stationService.createStation({ rutaId, nombre, latitud, longitud, orden })
+    const station = await stationService.createStation({ routeId, name, lat, lng, order })
     res.status(201).json({ success: true, data: station })
   } catch (error: any) {
     if (error.code === 'P2002') {
-      return res.status(400).json({ success: false, message: 'Ya existe una estación con ese orden en esta ruta' })
+      return res.status(400).json({ success: false, message: 'A station with that order already exists on this route' })
     }
-    res.status(500).json({ success: false, message: 'Error al crear estación' })
+    res.status(500).json({ success: false, message: 'Error creating station' })
   }
 }
 
@@ -31,15 +31,15 @@ export const update = async (req: Request, res: Response) => {
     const station = await stationService.updateStation(req.params.id, req.body)
     res.json({ success: true, data: station })
   } catch (error) {
-    res.status(500).json({ success: false, message: 'Error al actualizar estación' })
+    res.status(500).json({ success: false, message: 'Error updating station' })
   }
 }
 
 export const remove = async (req: Request, res: Response) => {
   try {
     await stationService.deleteStation(req.params.id)
-    res.json({ success: true, message: 'Estación eliminada correctamente' })
+    res.json({ success: true, message: 'Station deleted successfully' })
   } catch (error) {
-    res.status(500).json({ success: false, message: 'Error al eliminar estación' })
+    res.status(500).json({ success: false, message: 'Error deleting station' })
   }
 }

@@ -1,39 +1,39 @@
-export interface Ruta {
+export interface Route {
   id: string
-  nombre: string
-  descripcion?: string
-  origen: string
-  destino: string
-  activa: boolean
+  name: string
+  description?: string
+  origin: string
+  destination: string
+  active: boolean
   createdAt: string
   updatedAt: string
 }
 
-export interface Reporte {
+export interface Report {
   id: string
   busId: string
-  latitud: number
-  longitud: number
-  cantidadPasajeros: number
-  velocidad?: number
-  porcentajeOcupacion: number
-  nivelOcupacion: 'BAJO' | 'MEDIO' | 'ALTO' | 'LLENO'
+  lat: number
+  lng: number
+  passengerCount: number
+  speed?: number
+  occupancyPercent: number
+  occupancyLevel: 'LOW' | 'MEDIUM' | 'HIGH' | 'FULL'
   timestamp: string
 }
 
 export interface Bus {
   id: string
-  rutaId?: string
-  codigo: string
-  placa: string
-  capacidad: number
-  modelo?: string
-  estado: 'ACTIVO' | 'INACTIVO' | 'MANTENIMIENTO'
+  routeId?: string
+  code: string
+  plate: string
+  capacity: number
+  model?: string
+  status: 'ACTIVE' | 'INACTIVE' | 'MAINTENANCE'
   createdAt: string
   updatedAt: string
-  ruta?: Ruta
-  ultimoReporte?: Reporte
-  reportes?: Reporte[]
+  route?: Route
+  lastReport?: Report
+  reports?: Report[]
 }
 
 export interface SimulationStatus {
@@ -41,4 +41,4 @@ export interface SimulationStatus {
   message: string
 }
 
-export type FilterType = 'all' | 'active' | 'full'
+export type FilterType = 'all' | 'active' | 'inactive' | 'maintenance' | 'full'
