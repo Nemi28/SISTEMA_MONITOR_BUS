@@ -1,28 +1,28 @@
 import { useEffect, useState } from 'react'
-import { Reporte } from '../types'
+import { Report } from '../types'
 import { getReportsByBus } from '../services/api'
 import { X, Clock, Users, Gauge, MapPin } from 'lucide-react'
 
 interface Props {
   busId: string
-  busCodigo: string
+  busCode: string
   onClose: () => void
 }
 
-const nivelColors = {
-  BAJO: 'text-green-400',
-  MEDIO: 'text-yellow-400',
-  ALTO: 'text-orange-400',
-  LLENO: 'text-red-400',
+const levelColors = {
+  LOW: 'text-green-400',
+  MEDIUM: 'text-yellow-400',
+  HIGH: 'text-orange-400',
+  FULL: 'text-red-400',
 }
 
-export default function BusHistory({ busId, busCodigo, onClose }: Props) {
-  const [reportes, setReportes] = useState<Reporte[]>([])
+export default function BusHistory({ busId, busCode, onClose }: Props) {
+  const [reports, setReports] = useState<Report[]>([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     getReportsByBus(busId)
-      .then(setReportes)
+      .then(setReports)
       .finally(() => setLoading(false))
   }, [busId])
 
@@ -32,14 +32,13 @@ export default function BusHistory({ busId, busCodigo, onClose }: Props) {
         {/* Header */}
         <div className="flex justify-between items-center mb-4">
           <h2 className="text-xl font-bold text-white">
-            Historial — {busCodigo}
+            Historial — {busCode}
           </h2>
           <button onClick={onClose} className="text-gray-400 hover:text-white">
             <X size={20} />
           </button>
         </div>
 
-        {/* Loading */}
         {loading && (
           <div className="flex-1 space-y-3">
             {[...Array(5)].map((_, i) => (
@@ -48,22 +47,20 @@ export default function BusHistory({ busId, busCodigo, onClose }: Props) {
           </div>
         )}
 
-        {/* Sin datos */}
-        {!loading && reportes.length === 0 && (
+        {!loading && reports.length === 0 && (
           <div className="flex-1 flex flex-col items-center justify-center py-12">
             <Clock className="text-gray-600 mb-3" size={40} />
             <p className="text-gray-400">Sin reportes registrados</p>
           </div>
         )}
 
-        {/* Lista */}
-        {!loading && reportes.length > 0 && (
+        {!loading && reports.length > 0 && (
           <div className="flex-1 overflow-y-auto space-y-2 pr-1">
-            {reportes.map((r) => (
+            {reports.map((r) => (
               <div key={r.id} className="bg-gray-700 rounded-lg p-3 border border-gray-600">
                 <div className="flex justify-between items-start mb-2">
-                  <span className={`text-sm font-medium ${nivelColors[r.nivelOcupacion]}`}>
-                    {r.nivelOcupacion} — {r.porcentajeOcupacion}%
+                  <span className={`text-sm font-medium ${levelColors[r.occupancyLevel]}`}>
+                    {r.occupancyLevel} — {r.occupancyPercent}%
                   </span>
                   <span className="text-xs text-gray-500">
                     {new Date(r.timestamp).toLocaleString('es-PE')}
@@ -72,17 +69,17 @@ export default function BusHistory({ busId, busCodigo, onClose }: Props) {
                 <div className="flex gap-4 text-xs text-gray-400">
                   <span className="flex items-center gap-1">
                     <Users size={12} />
-                    {r.cantidadPasajeros} pasajeros
+                    {r.passengerCount} pasajeros
                   </span>
-                  {r.velocidad && (
+                  {r.speed && (
                     <span className="flex items-center gap-1">
                       <Gauge size={12} />
-                      {r.velocidad} km/h
+                      {r.speed} km/h
                     </span>
                   )}
                   <span className="flex items-center gap-1">
                     <MapPin size={12} />
-                    {r.latitud.toFixed(4)}, {r.longitud.toFixed(4)}
+                    {r.lat.toFixed(4)}, {r.lng.toFixed(4)}
                   </span>
                 </div>
               </div>

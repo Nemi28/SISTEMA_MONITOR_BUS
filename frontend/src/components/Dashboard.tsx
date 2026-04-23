@@ -9,11 +9,11 @@ export default function Dashboard() {
   const { data: buses } = usePolling(fetchStatus, 5000)
 
   const total = buses?.length ?? 0
-  const llenos = buses?.filter((b: Bus) => b.ultimoReporte?.nivelOcupacion === 'LLENO').length ?? 0
-  const activos = buses?.filter((b: Bus) => b.ultimoReporte).length ?? 0
-  const promedio = buses?.length
+  const full = buses?.filter((b: Bus) => b.lastReport?.occupancyLevel === 'FULL').length ?? 0
+  const withLocation = buses?.filter((b: Bus) => b.lastReport).length ?? 0
+  const avgOccupancy = buses?.length
     ? Math.round(
-        buses.reduce((acc: number, b: Bus) => acc + (b.ultimoReporte?.porcentajeOcupacion ?? 0), 0) /
+        buses.reduce((acc: number, b: Bus) => acc + (b.lastReport?.occupancyPercent ?? 0), 0) /
           buses.length
       )
     : 0
@@ -28,21 +28,21 @@ export default function Dashboard() {
     },
     {
       label: 'Con Ubicación',
-      value: activos,
+      value: withLocation,
       icon: CheckCircle,
       color: 'text-green-400',
       bg: 'bg-green-400/10',
     },
     {
       label: 'Buses Llenos',
-      value: llenos,
+      value: full,
       icon: AlertTriangle,
       color: 'text-red-400',
       bg: 'bg-red-400/10',
     },
     {
       label: 'Ocupación Promedio',
-      value: `${promedio}%`,
+      value: `${avgOccupancy}%`,
       icon: Users,
       color: 'text-yellow-400',
       bg: 'bg-yellow-400/10',

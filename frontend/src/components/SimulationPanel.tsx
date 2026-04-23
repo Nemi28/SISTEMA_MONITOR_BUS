@@ -1,23 +1,22 @@
-import { useState, useEffect } from 'react'
+import { useState, useCallback } from 'react'
 import { getSimulationStatus, startSimulation, stopSimulation } from '../services/api'
+import { usePolling } from '../hooks/usePolling'
 
 export default function SimulationPanel() {
-  const [isRunning, setIsRunning] = useState(false)
   const [loading, setLoading] = useState(false)
 
-  useEffect(() => {
-    getSimulationStatus().then((s) => setIsRunning(s.isRunning))
-  }, [])
+  const fetchStatus = useCallback(() => getSimulationStatus(), [])
+  const { data: status } = usePolling(fetchStatus, 5000)
+
+  const isRunning = status?.isRunning ?? false
 
   const toggle = async () => {
     setLoading(true)
     try {
       if (isRunning) {
         await stopSimulation()
-        setIsRunning(false)
       } else {
         await startSimulation(5)
-        setIsRunning(true)
       }
     } finally {
       setLoading(false)

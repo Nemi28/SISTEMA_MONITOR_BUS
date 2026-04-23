@@ -1,31 +1,31 @@
 import prisma from '../prisma/prisma.service'
 
 export const getStationsByLine = async (lineId: string) => {
-  return prisma.estacion.findMany({
-    where: { rutaId: lineId },
-    orderBy: { orden: 'asc' },
+  return prisma.station.findMany({
+    where: { routeId: lineId },
+    orderBy: { order: 'asc' },
   })
 }
 
 export const createStation = async (data: {
-  rutaId: string
-  nombre: string
-  latitud: number
-  longitud: number
-  orden: number
+  routeId: string
+  name: string
+  lat: number
+  lng: number
+  order: number
 }) => {
-  return prisma.estacion.create({ data })
+  return prisma.station.create({ data })
 }
 
 export const updateStation = async (id: string, data: {
-  nombre?: string
-  latitud?: number
-  longitud?: number
-  orden?: number
+  name?: string
+  lat?: number
+  lng?: number
+  order?: number
 }) => {
-  return prisma.estacion.update({ where: { id }, data })
+  return prisma.station.update({ where: { id }, data })
 }
 
 export const deleteStation = async (id: string) => {
-  return prisma.estacion.delete({ where: { id } })
+  return prisma.station.delete({ where: { id } })
 }
