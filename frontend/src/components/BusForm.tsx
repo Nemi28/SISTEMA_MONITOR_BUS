@@ -66,7 +66,7 @@ export default function BusForm({ onClose, onSuccess, onError }: Props) {
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Capacidad</label>
-              <input {...register('capacity')} type="number" placeholder="80" className={inputCls(!!errors.capacity)} />
+              <input {...register('capacity', { valueAsNumber: true })} type="number" placeholder="80" className={inputCls(!!errors.capacity)} />
               {errors.capacity && <p className="text-red-500 text-xs mt-1">{errors.capacity.message}</p>}
             </div>
             <div>
