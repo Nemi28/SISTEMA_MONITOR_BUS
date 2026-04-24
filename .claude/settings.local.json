@@ -1,0 +1,22 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npx tsc *)",
+      "Bash(npm run *)",
+      "Bash(awk '{print $3}')",
+      "Bash(xargs basename *)",
+      "WebSearch",
+      "WebFetch(domain:en.wikipedia.org)",
+      "WebFetch(domain:peru.worldplaces.me)",
+      "WebFetch(domain:www.openstreetmap.org)",
+      "WebFetch(domain:nominatim.openstreetmap.org)",
+      "WebFetch(domain:overpass-api.de)",
+      "WebFetch(domain:mapcarta.com)",
+      "WebFetch(domain:www.123coordenadas.com)",
+      "WebFetch(domain:www.gpsmycity.com)",
+      "Bash(xargs grep *)",
+      "Bash(npm install *)",
+      "Bash(node -e \"console.log\\(require\\('zod/package.json'\\).version\\)\")"
+    ]
+  }
+}

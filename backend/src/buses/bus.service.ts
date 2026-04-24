@@ -1,5 +1,39 @@
 import prisma from '../prisma/prisma.service'
 import { BusStatus } from '@prisma/client'
+import { getBusProgressInfo } from '../simulation/simulation.service'
+import { haversineKm } from '../utils/geo'
+
+const routeStationsInclude = {
+  routeStations: {
+    include: { station: { select: { id: true, name: true, lat: true, lng: true } } },
+    orderBy: { order: 'asc' as const },
+  },
+}
+
+const computeETA = (busId: string, report: any, routeStations: any[]) => {
+  const empty = { currentStation: null, nextStation: null, etaMinutes: null, returning: false, routeProgress: 0 }
+  if (!report || routeStations.length < 2) return empty
+
+  const prog = getBusProgressInfo(busId)
+  if (!prog) return empty
+
+  const currentRs = routeStations[prog.stationIdx]
+  const nextIdx   = Math.max(0, Math.min(routeStations.length - 1, prog.stationIdx + prog.direction))
+  const nextRs    = routeStations[nextIdx]
+  if (!currentRs || !nextRs) return empty
+
+  const dist       = haversineKm(report.lat, report.lng, nextRs.station.lat, nextRs.station.lng)
+  const speed      = report.speed && report.speed > 0 ? report.speed : 25
+  const etaMinutes = Math.max(1, Math.round((dist / speed) * 60))
+
+  return {
+    currentStation: { id: currentRs.station.id, name: currentRs.station.name, order: currentRs.order },
+    nextStation:    { id: nextRs.station.id,    name: nextRs.station.name,    order: nextRs.order },
+    etaMinutes,
+    returning: prog.direction === -1,
+    routeProgress: Math.round(prog.progress * 100),
+  }
+}
 
 export const getAllBuses = async (
   filter?: string,
@@ -37,7 +71,7 @@ export const getAllBuses = async (
     prisma.bus.findMany({
       where,
       include: {
-        route: true,
+        route: { include: routeStationsInclude },
         reports: { orderBy: { timestamp: 'desc' }, take: 1 },
       },
       skip,
@@ -48,11 +82,12 @@ export const getAllBuses = async (
   ])
 
   return {
-    data: buses.map((bus) => ({
-      ...bus,
-      lastReport: bus.reports[0] || null,
-      reports: undefined,
-    })),
+    data: buses.map((bus) => {
+      const lastReport    = bus.reports[0] || null
+      const routeStations = (bus.route as any)?.routeStations ?? []
+      const { currentStation, nextStation, etaMinutes, returning, routeProgress } = computeETA(bus.id, lastReport, routeStations)
+      return { ...bus, lastReport, reports: undefined, currentStation, nextStation, etaMinutes, returning, routeProgress }
+    }),
     total,
     page,
     limit,
@@ -64,11 +99,8 @@ export const getBusById = async (id: string) => {
   return prisma.bus.findUnique({
     where: { id },
     include: {
-      route: true,
-      reports: {
-        orderBy: { timestamp: 'desc' },
-        take: 1,
-      },
+      route: { include: routeStationsInclude },
+      reports: { orderBy: { timestamp: 'desc' }, take: 1 },
     },
   })
 }

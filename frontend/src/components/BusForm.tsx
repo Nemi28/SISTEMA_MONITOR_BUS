@@ -1,169 +1,97 @@
-import { useState, useEffect } from "react";
-import { createBus, getLines } from "../services/api";
-import { X, Bus } from "lucide-react";
-import { Route } from "../types";
+import { useEffect, useState } from 'react'
+import { useForm } from 'react-hook-form'
+import { zodResolver } from '@hookform/resolvers/zod'
+import { createBus, getLines } from '../services/api'
+import { X, Bus } from 'lucide-react'
+import { Route } from '../types'
+import { busSchema, BusFormData } from '../validators'
+import axios from 'axios'
 
-interface Props {
-  onClose: () => void;
-  onSuccess: () => void;
-  onError?: (message: string) => void;
-}
+interface Props { onClose: () => void; onSuccess: () => void; onError?: (msg: string) => void }
+
+const inputCls = (error?: boolean) =>
+  `w-full bg-white text-gray-900 text-sm rounded-lg px-3 py-2 border ${error ? 'border-red-400 focus:ring-red-400' : 'border-gray-300 focus:border-blue-500 focus:ring-blue-500'} focus:ring-1 focus:outline-none transition-colors`
 
 export default function BusForm({ onClose, onSuccess, onError }: Props) {
-  const [lines, setLines] = useState<Route[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [form, setForm] = useState({
-    code: "",
-    plate: "",
-    capacity: "",
-    model: "",
-    routeId: "",
-  });
+  const [lines, setLines] = useState<Route[]>([])
+  const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm<BusFormData>({
+    resolver: zodResolver(busSchema),
+  })
 
-  useEffect(() => {
-    getLines().then(setLines);
-  }, []);
+  useEffect(() => { getLines().then(setLines) }, [])
 
-  const handleChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>,
-  ) => {
-    setForm({ ...form, [e.target.name]: e.target.value });
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-    setError(null);
+  const onSubmit = async (data: BusFormData) => {
     try {
       await createBus({
-        code: form.code,
-        plate: form.plate,
-        capacity: parseInt(form.capacity),
-        model: form.model || undefined,
-        routeId: form.routeId || undefined,
-      });
-      onSuccess();
-      onClose();
+        code: data.code,
+        plate: data.plate,
+        capacity: data.capacity,
+        model: data.model || undefined,
+        routeId: data.routeId || undefined,
+      })
+      onSuccess(); onClose()
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : "Error al crear bus";
-      setError(message);
-      onError?.(message);
-    } finally {
-      setLoading(false);
+      const msg = axios.isAxiosError(err) ? (err.response?.data?.message ?? 'Error al crear bus') : 'Error al crear bus'
+      onError?.(msg)
     }
-  };
+  }
 
   return (
-    <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50">
-      <div className="bg-gray-800 rounded-2xl p-6 w-full max-w-md border border-gray-700">
-        <div className="flex justify-between items-center mb-6">
+    <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-[2000] p-4">
+      <div className="bg-white rounded-xl w-full max-w-md border border-gray-200 shadow-lg">
+        <div className="flex justify-between items-center px-5 py-4 border-b border-gray-100">
           <div className="flex items-center gap-2">
-            <Bus size={20} className="text-blue-400" />
-            <h2 className="text-xl font-bold text-white">Registrar Bus</h2>
+            <div className="w-7 h-7 rounded-lg bg-blue-50 flex items-center justify-center">
+              <Bus size={14} className="text-blue-600" />
+            </div>
+            <h2 className="text-base font-semibold text-gray-900">Registrar Bus</h2>
           </div>
-          <button onClick={onClose} className="text-gray-400 hover:text-white">
-            <X size={20} />
-          </button>
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 transition-colors"><X size={18} /></button>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit(onSubmit)} className="px-5 py-4 space-y-4">
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-sm text-gray-400 mb-1">Código</label>
-              <input
-                name="code"
-                value={form.code}
-                onChange={handleChange}
-                required
-                placeholder="BUS-009"
-                className="w-full bg-gray-700 text-white rounded-lg px-3 py-2 text-sm border border-gray-600 focus:border-blue-500 focus:outline-none"
-              />
+              <label className="block text-sm font-medium text-gray-700 mb-1">Código</label>
+              <input {...register('code')} placeholder="BUS-009" className={inputCls(!!errors.code)} />
+              {errors.code && <p className="text-red-500 text-xs mt-1">{errors.code.message}</p>}
             </div>
             <div>
-              <label className="block text-sm text-gray-400 mb-1">Placa</label>
-              <input
-                name="plate"
-                value={form.plate}
-                onChange={handleChange}
-                required
-                placeholder="XYZ-789"
-                className="w-full bg-gray-700 text-white rounded-lg px-3 py-2 text-sm border border-gray-600 focus:border-blue-500 focus:outline-none"
-              />
+              <label className="block text-sm font-medium text-gray-700 mb-1">Placa</label>
+              <input {...register('plate')} placeholder="XYZ-789" className={inputCls(!!errors.plate)} />
+              {errors.plate && <p className="text-red-500 text-xs mt-1">{errors.plate.message}</p>}
             </div>
           </div>
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-sm text-gray-400 mb-1">Capacidad</label>
-              <input
-                name="capacity"
-                type="number"
-                min="1"
-                value={form.capacity}
-                onChange={handleChange}
-                required
-                placeholder="80"
-                className="w-full bg-gray-700 text-white rounded-lg px-3 py-2 text-sm border border-gray-600 focus:border-blue-500 focus:outline-none"
-              />
+              <label className="block text-sm font-medium text-gray-700 mb-1">Capacidad</label>
+              <input {...register('capacity')} type="number" placeholder="80" className={inputCls(!!errors.capacity)} />
+              {errors.capacity && <p className="text-red-500 text-xs mt-1">{errors.capacity.message}</p>}
             </div>
             <div>
-              <label className="block text-sm text-gray-400 mb-1">
-                Modelo <span className="text-gray-500">— opcional</span>
-              </label>
-              <input
-                name="model"
-                value={form.model}
-                onChange={handleChange}
-                placeholder="Volvo B8R"
-                className="w-full bg-gray-700 text-white rounded-lg px-3 py-2 text-sm border border-gray-600 focus:border-blue-500 focus:outline-none"
-              />
+              <label className="block text-sm font-medium text-gray-700 mb-1">Modelo <span className="text-gray-400 font-normal">— opc.</span></label>
+              <input {...register('model')} placeholder="Volvo B8R" className={inputCls(!!errors.model)} />
+              {errors.model && <p className="text-red-500 text-xs mt-1">{errors.model.message}</p>}
             </div>
           </div>
 
           <div>
-            <label className="block text-sm text-gray-400 mb-1">
-              Línea <span className="text-gray-500">— opcional</span>
-            </label>
-            <select
-              name="routeId"
-              value={form.routeId}
-              onChange={handleChange}
-              className="w-full bg-gray-700 text-white rounded-lg px-3 py-2 text-sm border border-gray-600 focus:border-blue-500 focus:outline-none"
-            >
+            <label className="block text-sm font-medium text-gray-700 mb-1">Línea <span className="text-gray-400 font-normal">— opcional</span></label>
+            <select {...register('routeId')} className={inputCls()}>
               <option value="">Sin línea asignada</option>
-              {lines.map((line) => (
-                <option key={line.id} value={line.id}>
-                  {line.name} — {line.origin} → {line.destination}
-                </option>
-              ))}
+              {lines.map(l => <option key={l.id} value={l.id}>{l.name} — {l.origin} → {l.destination}</option>)}
             </select>
           </div>
 
-          {error && (
-            <p className="text-red-400 text-sm bg-red-400/10 px-3 py-2 rounded-lg">
-              {error}
-            </p>
-          )}
-
-          <div className="flex gap-3 pt-2">
-            <button
-              type="button"
-              onClick={onClose}
-              className="flex-1 px-4 py-2 rounded-lg bg-gray-700 text-gray-300 hover:bg-gray-600 transition-colors text-sm"
-            >
-              Cancelar
-            </button>
-            <button
-              type="submit"
-              disabled={loading}
-              className="flex-1 flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white transition-colors text-sm disabled:opacity-50"
-            >
-              {loading ? "Registrando..." : "Registrar Bus"}
+          <div className="flex gap-3 pt-1">
+            <button type="button" onClick={onClose} className="flex-1 px-4 py-2 rounded-lg bg-white text-gray-700 border border-gray-300 hover:bg-gray-50 text-sm font-medium transition-colors">Cancelar</button>
+            <button type="submit" disabled={isSubmitting} className="flex-1 px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium disabled:opacity-50 transition-colors">
+              {isSubmitting ? 'Registrando...' : 'Registrar Bus'}
             </button>
           </div>
         </form>
       </div>
     </div>
-  );
+  )
 }

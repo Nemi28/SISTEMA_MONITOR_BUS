@@ -1,200 +1,110 @@
-import { useState, useEffect } from "react";
-import { createReport, getBuses } from "../services/api";
-import { Bus } from "../types";
-import { Send, X } from "lucide-react";
-import axios from "axios";
+import { useEffect, useState } from 'react'
+import { useForm, useWatch } from 'react-hook-form'
+import { zodResolver } from '@hookform/resolvers/zod'
+import { createReport, getBuses } from '../services/api'
+import { Bus } from '../types'
+import { Send, X } from 'lucide-react'
+import { reportSchema, ReportFormData } from '../validators'
+import axios from 'axios'
 
-interface Props {
-  onClose: () => void;
-  onSuccess: () => void;
-  onError?: (message: string) => void;
-}
+interface Props { onClose: () => void; onSuccess: () => void; onError?: (msg: string) => void }
+
+const inputCls = (error?: boolean) =>
+  `w-full bg-white text-gray-900 text-sm rounded-lg px-3 py-2 border ${error ? 'border-red-400 focus:ring-red-400' : 'border-gray-300 focus:border-blue-500 focus:ring-blue-500'} focus:ring-1 focus:outline-none transition-colors`
 
 export default function ReportForm({ onClose, onSuccess, onError }: Props) {
-  const [buses, setBuses] = useState<Bus[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [form, setForm] = useState({
-    busId: "",
-    lat: "-12.0464",
-    lng: "-77.0428",
-    passengerCount: "",
-    speed: "",
-  });
+  const [buses, setBuses] = useState<Bus[]>([])
+  const [serverError, setServerError] = useState<string | null>(null)
 
-  useEffect(() => {
-    getBuses("active").then((r) => setBuses(r.data));
-  }, []);
+  const { register, handleSubmit, control, formState: { errors, isSubmitting } } = useForm<ReportFormData>({
+    resolver: zodResolver(reportSchema),
+    defaultValues: { lat: -12.0464, lng: -77.0428, passengerCount: 0 },
+  })
 
-  const selectedBus = buses.find((b) => b.id === form.busId) ?? null;
-  const passengerCountNum = parseInt(form.passengerCount) || 0;
-  const exceedsCapacity =
-    selectedBus !== null &&
-    form.passengerCount !== "" &&
-    passengerCountNum > selectedBus.capacity;
+  useEffect(() => { getBuses('active').then(r => setBuses(r.data)) }, [])
 
-  const handleChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>,
-  ) => {
-    setForm({ ...form, [e.target.name]: e.target.value });
-    setError(null);
-  };
+  const busId = useWatch({ control, name: 'busId' })
+  const passengerCount = useWatch({ control, name: 'passengerCount' })
+  const selectedBus = buses.find(b => b.id === busId) ?? null
+  const exceedsCapacity = selectedBus !== null && passengerCount !== undefined && Number(passengerCount) > selectedBus.capacity
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (exceedsCapacity) return;
-    setLoading(true);
-    setError(null);
+  const onSubmit = async (data: ReportFormData) => {
+    if (exceedsCapacity) return
+    setServerError(null)
     try {
       await createReport({
-        busId: form.busId,
-        lat: parseFloat(form.lat),
-        lng: parseFloat(form.lng),
-        passengerCount: passengerCountNum,
-        speed: form.speed ? parseFloat(form.speed) : undefined,
-      });
-      onSuccess();
-      onClose();
+        busId: data.busId,
+        lat: data.lat,
+        lng: data.lng,
+        passengerCount: data.passengerCount,
+        speed: data.speed ?? undefined,
+      })
+      onSuccess(); onClose()
     } catch (err: unknown) {
-      const message = axios.isAxiosError(err)
-        ? (err.response?.data?.message ?? "Error al crear reporte")
-        : "Error al crear reporte";
-      setError(message);
-      onError?.(message);
-    } finally {
-      setLoading(false);
+      const msg = axios.isAxiosError(err) ? (err.response?.data?.message ?? 'Error al crear reporte') : 'Error al crear reporte'
+      setServerError(msg); onError?.(msg)
     }
-  };
+  }
 
   return (
-    <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50">
-      <div className="bg-gray-800 rounded-2xl p-6 w-full max-w-md border border-gray-700">
-        <div className="flex justify-between items-center mb-6">
-          <h2 className="text-xl font-bold text-white">
-            Registrar Reporte Manual
-          </h2>
-          <button onClick={onClose} className="text-gray-400 hover:text-white">
-            <X size={20} />
-          </button>
+    <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-[2000] p-4">
+      <div className="bg-white rounded-xl w-full max-w-md border border-gray-200 shadow-lg">
+        <div className="flex justify-between items-center px-5 py-4 border-b border-gray-100">
+          <h2 className="text-base font-semibold text-gray-900">Registrar Reporte Manual</h2>
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 transition-colors"><X size={18} /></button>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit(onSubmit)} className="px-5 py-4 space-y-4">
           <div>
-            <label className="block text-sm text-gray-400 mb-1">Bus</label>
-            <select
-              name="busId"
-              value={form.busId}
-              onChange={handleChange}
-              required
-              className="w-full bg-gray-700 text-white rounded-lg px-3 py-2 text-sm border border-gray-600 focus:border-blue-500 focus:outline-none"
-            >
+            <label className="block text-sm font-medium text-gray-700 mb-1">Bus</label>
+            <select {...register('busId')} className={inputCls(!!errors.busId)}>
               <option value="">Selecciona un bus</option>
-              {buses.map((bus) => (
-                <option key={bus.id} value={bus.id}>
-                  {bus.code} — {bus.plate} (cap. {bus.capacity})
-                </option>
-              ))}
+              {buses.map(b => <option key={b.id} value={b.id}>{b.code} — {b.plate} (cap. {b.capacity})</option>)}
             </select>
+            {errors.busId && <p className="text-red-500 text-xs mt-1">{errors.busId.message}</p>}
           </div>
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-sm text-gray-400 mb-1">Latitud</label>
-              <input
-                name="lat"
-                type="number"
-                step="any"
-                value={form.lat}
-                onChange={handleChange}
-                required
-                className="w-full bg-gray-700 text-white rounded-lg px-3 py-2 text-sm border border-gray-600 focus:border-blue-500 focus:outline-none"
-              />
+              <label className="block text-sm font-medium text-gray-700 mb-1">Latitud</label>
+              <input {...register('lat', { valueAsNumber: true })} type="number" step="any" className={inputCls(!!errors.lat)} />
+              {errors.lat && <p className="text-red-500 text-xs mt-1">{errors.lat.message}</p>}
             </div>
             <div>
-              <label className="block text-sm text-gray-400 mb-1">Longitud</label>
-              <input
-                name="lng"
-                type="number"
-                step="any"
-                value={form.lng}
-                onChange={handleChange}
-                required
-                className="w-full bg-gray-700 text-white rounded-lg px-3 py-2 text-sm border border-gray-600 focus:border-blue-500 focus:outline-none"
-              />
+              <label className="block text-sm font-medium text-gray-700 mb-1">Longitud</label>
+              <input {...register('lng', { valueAsNumber: true })} type="number" step="any" className={inputCls(!!errors.lng)} />
+              {errors.lng && <p className="text-red-500 text-xs mt-1">{errors.lng.message}</p>}
             </div>
           </div>
 
           <div>
             <div className="flex justify-between mb-1">
-              <label className="text-sm text-gray-400">Cantidad de Pasajeros</label>
-              {selectedBus && (
-                <span className="text-xs text-gray-500">
-                  Capacidad máx: <span className="text-gray-300 font-medium">{selectedBus.capacity}</span>
-                </span>
-              )}
+              <label className="text-sm font-medium text-gray-700">Cantidad de Pasajeros</label>
+              {selectedBus && <span className="text-xs text-gray-400">máx: {selectedBus.capacity}</span>}
             </div>
-            <input
-              name="passengerCount"
-              type="number"
-              min="0"
-              max={selectedBus?.capacity}
-              value={form.passengerCount}
-              onChange={handleChange}
-              required
-              placeholder="Ej: 45"
-              className={`w-full bg-gray-700 text-white rounded-lg px-3 py-2 text-sm border focus:outline-none transition-colors ${
-                exceedsCapacity
-                  ? "border-red-500 focus:border-red-500"
-                  : "border-gray-600 focus:border-blue-500"
-              }`}
-            />
-            {exceedsCapacity && (
-              <p className="text-red-400 text-xs mt-1">
-                Excede la capacidad del bus ({selectedBus!.capacity} pasajeros máximo)
-              </p>
-            )}
+            <input {...register('passengerCount', { valueAsNumber: true })} type="number" placeholder="Ej: 45"
+              className={inputCls(!!errors.passengerCount || exceedsCapacity)} />
+            {errors.passengerCount && <p className="text-red-500 text-xs mt-1">{errors.passengerCount.message}</p>}
+            {exceedsCapacity && <p className="text-red-500 text-xs mt-1">Excede la capacidad máxima ({selectedBus!.capacity})</p>}
           </div>
 
           <div>
-            <label className="block text-sm text-gray-400 mb-1">
-              Velocidad (km/h) <span className="text-gray-500">— opcional</span>
-            </label>
-            <input
-              name="speed"
-              type="number"
-              min="0"
-              value={form.speed}
-              onChange={handleChange}
-              placeholder="Ej: 35"
-              className="w-full bg-gray-700 text-white rounded-lg px-3 py-2 text-sm border border-gray-600 focus:border-blue-500 focus:outline-none"
-            />
+            <label className="block text-sm font-medium text-gray-700 mb-1">Velocidad (km/h) <span className="text-gray-400 font-normal">— opcional</span></label>
+            <input {...register('speed', { valueAsNumber: true })} type="number" placeholder="Ej: 35" className={inputCls(!!errors.speed)} />
+            {errors.speed && <p className="text-red-500 text-xs mt-1">{errors.speed.message}</p>}
           </div>
 
-          {error && (
-            <p className="text-red-400 text-sm bg-red-400/10 px-3 py-2 rounded-lg">
-              {error}
-            </p>
-          )}
+          {serverError && <p className="text-red-600 text-sm bg-red-50 border border-red-200 px-3 py-2 rounded-lg">{serverError}</p>}
 
-          <div className="flex gap-3 pt-2">
-            <button
-              type="button"
-              onClick={onClose}
-              className="flex-1 px-4 py-2 rounded-lg bg-gray-700 text-gray-300 hover:bg-gray-600 transition-colors text-sm"
-            >
-              Cancelar
-            </button>
-            <button
-              type="submit"
-              disabled={loading || exceedsCapacity}
-              className="flex-1 flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white transition-colors text-sm disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              <Send size={14} />
-              {loading ? "Enviando..." : "Registrar"}
+          <div className="flex gap-3 pt-1">
+            <button type="button" onClick={onClose} className="flex-1 px-4 py-2 rounded-lg bg-white text-gray-700 border border-gray-300 hover:bg-gray-50 text-sm font-medium transition-colors">Cancelar</button>
+            <button type="submit" disabled={isSubmitting || exceedsCapacity}
+              className="flex-1 flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium disabled:opacity-50 transition-colors">
+              <Send size={13} />{isSubmitting ? 'Enviando...' : 'Registrar'}
             </button>
           </div>
         </form>
       </div>
     </div>
-  );
+  )
 }
