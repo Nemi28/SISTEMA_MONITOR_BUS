@@ -158,10 +158,12 @@ npx prisma migrate dev
 
 ### Paso 3 — Seed de datos (opcional)
 
-Carga datos de ejemplo: 3 líneas, estaciones y 8 buses listos para simular.
+Carga datos de ejemplo: 2 líneas, 15 estaciones y 6 buses listos para simular.
 Si prefieres iniciar con la base vacía y registrar todo desde la interfaz, omite este paso.
 
 ```bash
+cd backend
+npx prisma generate
 npm run seed
 ```
 
