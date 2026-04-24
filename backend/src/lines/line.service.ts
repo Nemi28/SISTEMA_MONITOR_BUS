@@ -3,14 +3,25 @@ import prisma from '../prisma/prisma.service'
 export const getAllLines = async () => {
   return prisma.route.findMany({
     where: { active: true },
-    include: { stations: { orderBy: { order: 'asc' } } },
+    include: {
+      routeStations: {
+        include: { station: true },
+        orderBy: { order: 'asc' },
+      },
+    },
   })
 }
 
 export const getLineById = async (id: string) => {
   return prisma.route.findUnique({
     where: { id },
-    include: { stations: { orderBy: { order: 'asc' } }, buses: true },
+    include: {
+      routeStations: {
+        include: { station: true },
+        orderBy: { order: 'asc' },
+      },
+      buses: true,
+    },
   })
 }
 

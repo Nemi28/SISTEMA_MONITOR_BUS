@@ -30,16 +30,13 @@ export const getById = async (req: Request, res: Response) => {
 export const create = async (req: Request, res: Response) => {
   try {
     const { code, plate, capacity, model, routeId } = req.body
-    if (!code || !plate || !capacity) {
-      return res.status(400).json({ success: false, message: 'code, plate, and capacity are required' })
-    }
     const bus = await busService.createBus({ code, plate, capacity, model, routeId })
     res.status(201).json({ success: true, data: bus })
   } catch (error: any) {
     if (error.code === 'P2002') {
-      return res.status(400).json({ success: false, message: 'A bus with that code or plate already exists' })
+      return res.status(400).json({ success: false, message: 'Ya existe un bus con ese código o placa' })
     }
-    res.status(500).json({ success: false, message: 'Error creating bus' })
+    res.status(500).json({ success: false, message: 'Error al crear el bus' })
   }
 }
 

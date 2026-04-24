@@ -3,106 +3,104 @@ import { PrismaClient } from '@prisma/client'
 const prisma = new PrismaClient()
 
 async function main() {
-  console.log('Starting seed...')
+  console.log('🧹 Cleaning database...')
+  await prisma.report.deleteMany()
+  await prisma.routeStation.deleteMany()
+  await prisma.bus.deleteMany()
+  await prisma.station.deleteMany()
+  await prisma.route.deleteMany()
+  console.log('✅ Database cleared')
 
-  // 1. Create routes
-  const routeA = await prisma.route.upsert({
-    where: { name: 'Línea A' },
-    update: {},
-    create: {
+  // ── Línea A: Metropolitano — Naranjal → Matellini ─────────────────────────
+  const routeA = await prisma.route.create({
+    data: {
       name: 'Línea A',
-      description: 'Ruta norte-sur por Av. Naranjal',
+      description: 'Metropolitano · Terminal Naranjal → Terminal Matellini',
       origin: 'Terminal Naranjal',
-      destination: 'Estación Central',
+      destination: 'Terminal Matellini',
     },
   })
 
-  const routeB = await prisma.route.upsert({
-    where: { name: 'Línea B' },
-    update: {},
-    create: {
+  // ── Línea B: Corredor Javier Prado — La Molina → Miraflores ──────────────
+  const routeB = await prisma.route.create({
+    data: {
       name: 'Línea B',
-      description: 'Ruta este-oeste por Av. Javier Prado',
-      origin: 'Estación La Molina',
-      destination: 'Estación Naranjal',
-    },
-  })
-
-  const routeC = await prisma.route.upsert({
-    where: { name: 'Línea C' },
-    update: {},
-    create: {
-      name: 'Línea C',
-      description: 'Ruta circular por el centro',
-      origin: 'Estación Central',
-      destination: 'Estación Central',
+      description: 'Corredor Javier Prado · Separadora Industrial → Óvalo Gutiérrez',
+      origin: 'Javier Prado / Separadora Industrial',
+      destination: 'Óvalo Gutiérrez / Miraflores',
     },
   })
 
   console.log('✅ Routes created')
 
-  // 2. Create stations
-  const stationsA = [
-    { name: 'Terminal Naranjal', lat: -11.9575, lng: -77.0875, order: 1 },
-    { name: 'Av. Universitaria', lat: -12.0, lng: -77.08, order: 2 },
-    { name: 'Plaza Bolognesi', lat: -12.055, lng: -77.055, order: 3 },
-    { name: 'Estación Central', lat: -12.0464, lng: -77.0428, order: 4 },
+  // ── Stations — coordenadas GPS verificadas (OpenStreetMap) ────────────────
+  const stationsData = [
+    // Línea A — Metropolitano (Norte → Sur)
+    { name: 'Terminal Naranjal',                    lat: -11.9827, lng: -77.0586 },
+    { name: 'Estación Independencia',               lat: -11.9985, lng: -77.0553 },
+    { name: 'Estación Universitaria (UNI)',         lat: -12.0241, lng: -77.0491 },
+    { name: 'Estación Caquetá',                     lat: -12.0365, lng: -77.0436 },
+    { name: 'Estación Quilca',                      lat: -12.0522, lng: -77.0423 },
+    { name: 'Estación Central',                     lat: -12.0577, lng: -77.0360 },
+    { name: 'Estación Angamos',                     lat: -12.1133, lng: -77.0260 },
+    { name: 'Estación Benavides',                   lat: -12.1249, lng: -77.0242 },
+    { name: 'Estación 28 de Julio',                 lat: -12.1290, lng: -77.0229 },
+    { name: 'Terminal Matellini',                   lat: -12.1783, lng: -77.0104 },
+    // Línea B — Corredor Javier Prado (Este → Oeste)
+    { name: 'Javier Prado / Separadora Industrial', lat: -12.0650, lng: -76.9521 },
+    { name: 'Javier Prado / La Encalada',           lat: -12.0870, lng: -76.9714 },
+    { name: 'Javier Prado / Aviación',              lat: -12.0882, lng: -77.0042 },
+    { name: 'Javier Prado / Arequipa',              lat: -12.0944, lng: -77.0311 },
+    { name: 'Óvalo Gutiérrez / Miraflores',         lat: -12.1103, lng: -77.0370 },
   ]
 
-  for (const st of stationsA) {
-    await prisma.station.upsert({
-      where: { routeId_order: { routeId: routeA.id, order: st.order } },
-      update: {},
-      create: { ...st, routeId: routeA.id },
-    })
+  const stationMap: Record<string, { id: string }> = {}
+  for (const s of stationsData) {
+    const created = await prisma.station.create({ data: s })
+    stationMap[s.name] = created
   }
-
-  const stationsB = [
-    { name: 'Estación La Molina', lat: -12.0848, lng: -76.9455, order: 1 },
-    { name: 'Javier Prado Este', lat: -12.0869, lng: -77.0016, order: 2 },
-    { name: 'Javier Prado Oeste', lat: -12.0869, lng: -77.05, order: 3 },
-    { name: 'Estación Naranjal', lat: -11.9575, lng: -77.0875, order: 4 },
-  ]
-
-  for (const st of stationsB) {
-    await prisma.station.upsert({
-      where: { routeId_order: { routeId: routeB.id, order: st.order } },
-      update: {},
-      create: { ...st, routeId: routeB.id },
-    })
-  }
-
   console.log('✅ Stations created')
 
-  // 3. Create buses
-  const busesData = [
-    { code: 'BUS-001', plate: 'ABC-123', capacity: 80, model: 'Volvo B8R', routeId: routeA.id },
-    { code: 'BUS-002', plate: 'ABC-456', capacity: 80, model: 'Volvo B8R', routeId: routeA.id },
-    { code: 'BUS-003', plate: 'DEF-123', capacity: 60, model: 'Mercedes Citaro', routeId: routeA.id },
-    { code: 'BUS-004', plate: 'DEF-456', capacity: 100, model: 'Scania Citywide', routeId: routeB.id },
-    { code: 'BUS-005', plate: 'GHI-123', capacity: 100, model: 'Scania Citywide', routeId: routeB.id },
-    { code: 'BUS-006', plate: 'GHI-456', capacity: 80, model: 'Volvo B8R', routeId: routeB.id },
-    { code: 'BUS-007', plate: 'JKL-123', capacity: 60, model: 'Mercedes Citaro', routeId: routeC.id },
-    { code: 'BUS-008', plate: 'JKL-456', capacity: 60, model: 'Mercedes Citaro', routeId: routeC.id },
+  // ── Assign stations to routes ─────────────────────────────────────────────
+  const assignA = [
+    'Terminal Naranjal', 'Estación Independencia', 'Estación Universitaria (UNI)',
+    'Estación Caquetá', 'Estación Quilca', 'Estación Central',
+    'Estación Angamos', 'Estación Benavides', 'Estación 28 de Julio',
+    'Terminal Matellini',
   ]
-
-  for (const busData of busesData) {
-    await prisma.bus.upsert({
-      where: { code: busData.code },
-      update: {},
-      create: busData,
+  for (let i = 0; i < assignA.length; i++) {
+    await prisma.routeStation.create({
+      data: { routeId: routeA.id, stationId: stationMap[assignA[i]].id, order: i + 1 },
     })
   }
 
+  const assignB = [
+    'Javier Prado / Separadora Industrial', 'Javier Prado / La Encalada',
+    'Javier Prado / Aviación', 'Javier Prado / Arequipa', 'Óvalo Gutiérrez / Miraflores',
+  ]
+  for (let i = 0; i < assignB.length; i++) {
+    await prisma.routeStation.create({
+      data: { routeId: routeB.id, stationId: stationMap[assignB[i]].id, order: i + 1 },
+    })
+  }
+  console.log('✅ Stations assigned to routes')
+
+  // ── Buses ─────────────────────────────────────────────────────────────────
+  const buses = [
+    { code: 'BUS-001', plate: 'ABC-001', capacity: 80,  model: 'Volvo B8R',       routeId: routeA.id },
+    { code: 'BUS-002', plate: 'ABC-002', capacity: 80,  model: 'Volvo B8R',       routeId: routeA.id },
+    { code: 'BUS-003', plate: 'ABC-003', capacity: 60,  model: 'Mercedes Citaro', routeId: routeA.id },
+    { code: 'BUS-004', plate: 'DEF-001', capacity: 100, model: 'Scania Citywide', routeId: routeB.id },
+    { code: 'BUS-005', plate: 'DEF-002', capacity: 100, model: 'Scania Citywide', routeId: routeB.id },
+    { code: 'BUS-006', plate: 'DEF-003', capacity: 80,  model: 'Volvo B8R',       routeId: routeB.id },
+  ]
+  for (const b of buses) {
+    await prisma.bus.create({ data: b })
+  }
   console.log('✅ Buses created')
-  console.log('🎉 Seed completed successfully')
+  console.log('🎉 Seed completed')
 }
 
 main()
-  .catch((e) => {
-    console.error('❌ Seed error:', e)
-    process.exit(1)
-  })
-  .finally(async () => {
-    await prisma.$disconnect()
-  })
+  .catch((e) => { console.error('❌ Seed error:', e); process.exit(1) })
+  .finally(async () => { await prisma.$disconnect() })

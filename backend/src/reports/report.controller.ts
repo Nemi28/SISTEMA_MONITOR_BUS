@@ -4,14 +4,6 @@ import * as reportService from './report.service'
 export const create = async (req: Request, res: Response) => {
   try {
     const { busId, lat, lng, passengerCount, speed } = req.body
-
-    if (!busId || lat === undefined || lng === undefined || passengerCount === undefined) {
-      return res.status(400).json({
-        success: false,
-        message: 'busId, lat, lng, and passengerCount are required',
-      })
-    }
-
     const report = await reportService.createReport({ busId, lat, lng, passengerCount, speed })
     res.status(201).json({ success: true, data: report })
   } catch (error: any) {
@@ -23,8 +15,10 @@ export const create = async (req: Request, res: Response) => {
 
 export const getByBus = async (req: Request, res: Response) => {
   try {
-    const reports = await reportService.getReportsByBus(req.params.busId)
-    res.json({ success: true, data: reports })
+    const limit = Math.min(parseInt(String(req.query.limit ?? '50')), 100)
+    const skip  = parseInt(String(req.query.skip  ?? '0'))
+    const result = await reportService.getReportsByBus(req.params.busId, limit, skip)
+    res.json({ success: true, ...result })
   } catch (error) {
     res.status(500).json({ success: false, message: 'Error fetching report history' })
   }

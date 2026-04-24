@@ -29,31 +29,38 @@ enum OccupancyLevel {
 // ─────────────────────────────────────────
 
 model Route {
-  id          String    @id @default(uuid())
-  name        String    @unique
-  description String?
-  origin      String
-  destination String
-  active      Boolean   @default(true)
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+  id            String         @id @default(uuid())
+  name          String         @unique
+  description   String?
+  origin        String
+  destination   String
+  active        Boolean        @default(true)
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
 
-  stations    Station[]
-  buses       Bus[]
+  routeStations RouteStation[]
+  buses         Bus[]
 }
 
 model Station {
-  id        String   @id @default(uuid())
+  id            String         @id @default(uuid())
+  name          String
+  lat           Float
+  lng           Float
+  createdAt     DateTime       @default(now())
+
+  routeStations RouteStation[]
+}
+
+model RouteStation {
   routeId   String
-  name      String
-  lat       Float
-  lng       Float
+  stationId String
   order     Int
-  createdAt DateTime @default(now())
 
-  route     Route    @relation(fields: [routeId], references: [id])
+  route   Route   @relation(fields: [routeId], references: [id], onDelete: Cascade)
+  station Station @relation(fields: [stationId], references: [id], onDelete: Cascade)
 
-  @@unique([routeId, order])
+  @@id([routeId, stationId])
   @@index([routeId])
 }
 
