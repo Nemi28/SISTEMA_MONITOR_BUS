@@ -13,3 +13,6 @@ dist/
 
 # Logs
 *.log
+
+# Vite cache
+frontend/.vite/
