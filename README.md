@@ -59,12 +59,29 @@ frontend/src/
 ### Base de datos
 
 ```
-Ruta (línea)
- ├── tiene muchos Bus      (un bus pertenece a una sola ruta)
- └── tiene muchas Estacion (ordenadas por campo 'orden')
+Route (línea)
+ ├── name, description, origin, destination, active
+ ├── tiene muchos RouteStation  (tabla pivote con orden)
+ └── tiene muchos Bus
+
+Station (parada)
+ ├── name, lat, lng
+ └── tiene muchos RouteStation
+
+RouteStation (pivote Route ↔ Station)
+ ├── routeId, stationId, order
+ └── PK compuesta (routeId + stationId)
 
 Bus
- └── tiene muchos Reporte  (snapshots inmutables de GPS + ocupación)
+ ├── code (único), plate (único), capacity, model
+ ├── status: ACTIVE | INACTIVE | MAINTENANCE  (soft-delete)
+ ├── routeId nullable  (sin ruta → no se simula)
+ └── tiene muchos Report
+
+Report  (inmutable — nunca se sobreescribe)
+ ├── lat, lng, speed, passengerCount
+ ├── occupancyPercent (calculado en backend)
+ └── occupancyLevel: LOW | MEDIUM | HIGH | FULL
 ```
 
 ### Flujo de datos
