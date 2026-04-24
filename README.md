@@ -137,13 +137,19 @@ cd ../frontend && npm install
 
 ## Cómo levantar el proyecto
 
-### Paso 1 — Levantar PostgreSQL con Docker
+### Paso 1 — Levantar base de datos y backend con Docker
+
+> Ejecutar desde la **raíz del proyecto** (donde está `docker-compose.yml`):
 
 ```bash
 docker-compose up -d
 ```
 
-### Paso 2 — Aplicar migraciones
+Esto levanta PostgreSQL y el backend. Las migraciones se aplican automáticamente al iniciar el contenedor.
+
+### Paso 2 — Aplicar migraciones (solo desarrollo local sin Docker)
+
+Si prefieres correr el backend sin Docker:
 
 ```bash
 cd backend
