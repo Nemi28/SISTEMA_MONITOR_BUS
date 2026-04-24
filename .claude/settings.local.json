@@ -16,7 +16,15 @@
       "WebFetch(domain:www.gpsmycity.com)",
       "Bash(xargs grep *)",
       "Bash(npm install *)",
-      "Bash(node -e \"console.log\\(require\\('zod/package.json'\\).version\\)\")"
+      "Bash(node -e \"console.log\\(require\\('zod/package.json'\\).version\\)\")",
+      "Bash(git add *)",
+      "Bash(git commit -m ' *)",
+      "Bash(git push *)",
+      "Bash(gh pr create --title 'docs: README completo del entregable + favicon GrowMonitor' --body ' *)",
+      "Bash(grep \"\\\\.js$\")",
+      "Bash(git rm *)",
+      "Bash(git commit *)",
+      "Bash(git checkout *)"
     ]
   }
 }
